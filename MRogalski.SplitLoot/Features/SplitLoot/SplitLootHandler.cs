@@ -60,8 +60,6 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
             session.Players.Add(player);
         }
 
-        session.LootType = "Leader";
-
         foreach (var player in session.Players)
         {
             player.Balance = player.Loot - player.Supplies;
@@ -109,6 +107,7 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
         return transfers;
     }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task<SplitLootResponse> Handle(SplitLootRequest request, CancellationToken cancellationToken)
     {
         try
@@ -134,4 +133,5 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
             return SplitLootResponse.FromError(ex);
         }
     }
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 }
