@@ -1,0 +1,39 @@
+name: Publish
+on: [push]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Prepare environment variables
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+          echo "REPOSITORY_LC=${REPOSITORY,,}" >>${GITHUB_ENV}
+        env:
+          OWNER: '${{ github.repository_owner }}'
+          REPOSITORY: '${{ github.repository }}'
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: 
+          node-version: '18'
+      - name: Restore packages and build
+        run: dotnet restore MRogalski.SplitLoot.sln && dotnet publish MRogalski.SplitLoot.sln /p:DebugType=None /p:DebugSymbols=false -a x64 -c Release -f net8.0 --os linux --sc false -o ./release
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY_LC }}:latest
+          labels: ${{ steps.meta.outputs.labels }}
