@@ -47,11 +47,11 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
         }
     }
 
-    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm | Discord.InteractionContextType.PrivateChannel)]
+    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm)]
     [SlashCommand("sl", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
     public async Task SLInteractionAsync([Summary("clipboard", "Party hunt analyzer")] string clipboard) => await SplitLootInternalAsync(clipboard);
 
-    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm | Discord.InteractionContextType.PrivateChannel)]
+    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm)]
     [SlashCommand("splitloot", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
     public async Task SplitLootInteractionAsync([Summary("clipboard", "Party hunt analyzer")] string clipboard) => await SplitLootInternalAsync(clipboard);
 }
