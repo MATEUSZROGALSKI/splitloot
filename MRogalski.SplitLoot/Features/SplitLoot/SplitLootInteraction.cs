@@ -28,7 +28,7 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
         var request = new SplitLootRequest
         {
             CallerId = Context.User.Id,
-            Clipboard = Regex.Replace(sessionData, @"\R", " ")
+            Clipboard = Regex.Replace(sessionData, @"(\r\n|\r|\n)", " ")
         };
 
         var sw = new Stopwatch();
