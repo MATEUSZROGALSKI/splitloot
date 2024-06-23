@@ -24,7 +24,7 @@ internal sealed record class SplitLootResponse
         }
 
         var sb = new StringBuilder();
-        foreach (var key in Transfers.Keys)
+        foreach (var key in Transfers!.Keys)
         {
             sb.AppendLine(key);
             foreach (var value in Transfers[key])

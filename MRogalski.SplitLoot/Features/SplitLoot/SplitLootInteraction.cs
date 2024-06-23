@@ -1,10 +1,12 @@
-﻿using Discord.Interactions;
+﻿using Discord;
+using Discord.Interactions;
 
 using MediatR;
 
 using Microsoft.Extensions.Logging;
 
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace MRogalski.SplitLoot.Features.SplitLoot;
 
@@ -19,23 +21,21 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
         _logger = logger;
     }
 
-    [CommandContextType(Discord.InteractionContextType.Guild)]
-    [SlashCommand("splitloot", "Calculates per player profit out of party hunt analyzer")]
-    public async Task SplitLootInteractionAsync([Summary("clipboard", "Party hunt analyzer")] string clipboard)
+    private async Task SplitLootInternalAsync(string sessionData)
     {
         await DeferAsync();
 
         var request = new SplitLootRequest
         {
             CallerId = Context.User.Id,
-            Clipboard = clipboard
+            Clipboard = Regex.Replace(sessionData, @"\R", " ")
         };
 
         var sw = new Stopwatch();
         sw.Start();
         var response = await _mediator.Send(request);
         sw.Stop();
-        _logger.LogInformation($"Executing 'SplitLootHandler' took {sw.ElapsedMilliseconds} milliseconds generating '{response}' response");
+        _logger.LogInformation("Executing 'SplitLootHandler' took {elapsed} milliseconds generating '{response}' response", sw.ElapsedMilliseconds, response);
 
         if (!string.IsNullOrEmpty(response.Error))
         {
@@ -46,4 +46,20 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
             await FollowupAsync(embed: new SplitLootEmbed().Build(response));
         }
     }
+
+    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm | Discord.InteractionContextType.PrivateChannel)]
+    [SlashCommand("sl", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
+    public async Task SLInteractionAsync([Summary("clipboard", "Party hunt analyzer")] string clipboard) => await SplitLootInternalAsync(clipboard);
+
+    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm | Discord.InteractionContextType.PrivateChannel)]
+    [SlashCommand("splitloot", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
+    public async Task SplitLootInteractionAsync([Summary("clipboard", "Party hunt analyzer")] string clipboard) => await SplitLootInternalAsync(clipboard);
+
+    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm | Discord.InteractionContextType.PrivateChannel)]
+    [SlashCommand("slm", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
+    public async Task SLMInteractionAsync([Summary("message", "Message that contains session data")] IMessage message) => await SplitLootInternalAsync(message.Content);
+
+    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm | Discord.InteractionContextType.PrivateChannel)]
+    [SlashCommand("splitlootmsg", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
+    public async Task SplitLootMessageInteractionAsync([Summary("message", "Message that contains session data")] IMessage message) => await SplitLootInternalAsync(message.Content);
 }

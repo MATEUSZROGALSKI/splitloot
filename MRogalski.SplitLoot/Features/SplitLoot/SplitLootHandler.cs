@@ -37,7 +37,7 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
         const string playerPattern = @"(?<=\d{1}\s{1})(?'player'(?'name'(?:\s{0,1}\w{1,}){1,})(?:\s{1}\(Leader\)){0,1}(?'individual'\s{5}(?'type'Loot|Supplies|Balance|Damage|Healing):\s{1}(?'numericvalue'-{0,}(?:\d{1,3},{0,}){1,})){5})";
 
         var session = new Session();
-        var playerMatches = Regex.Matches(sessionData, playerPattern, RegexOptions.Multiline);
+        var playerMatches = Regex.Matches(sessionData, playerPattern, RegexOptions.Compiled | RegexOptions.Multiline);
         foreach (Match match in playerMatches)
         {
             var player = new Player
@@ -45,16 +45,15 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
                 Name = match.Groups["name"].Value.Trim()
             };
 
-            foreach (Capture capture in match.Groups["individual"].Captures)
-            {
-                var kv = capture.Value.Trim().Split(" ");
-                switch (kv[0].ToLower())
-                {
-                    case "balance:": player.Balance = ParseNumericValue(kv[1]); break;
-                };
-            }
-            session.Balance += player.Balance;
+            var kv = match
+                .Groups["individual"]
+                .Captures
+                .SingleOrDefault(c => c.Value.Contains("Balance"))
+                ?.Value.Trim().Split(" ") ?? throw new InvalidOperationException("Unable to parse player balance");
 
+            player.Balance = ParseNumericValue(kv[1]);
+            
+            session.Balance += player.Balance;
             session.Players.Add(player);
         }
 
