@@ -1,5 +1,8 @@
 ﻿using MediatR;
 
+using Microsoft.Extensions.Logging;
+
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace MRogalski.SplitLoot.Features.SplitLoot;
@@ -30,6 +33,13 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
     private static long ParseNumericValue(string numericValue)
     {
         return long.Parse(Regex.Replace(numericValue, ",", ""));
+    }
+
+    private readonly ILogger<SplitLootHandler> _logger;
+
+    public SplitLootHandler(ILogger<SplitLootHandler> logger)
+    {
+        _logger = logger;
     }
 
     private Session ParseSessionData(string sessionData)
@@ -70,8 +80,11 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task<SplitLootResponse> Handle(SplitLootRequest request, CancellationToken cancellationToken)
     {
+        var sw = new Stopwatch();
         try
         {
+            sw.Start();
+            
             var transfers = new List<Transfer>();
             var session = ParseSessionData(request.Clipboard);
 
@@ -116,6 +129,11 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
         catch (Exception ex)
         {
             return SplitLootResponse.FromError(ex);
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation("Executing 'SplitLootHandler' took {elapsed} milliseconds.", sw.ElapsedMilliseconds);
         }
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

@@ -1,5 +1,4 @@
-﻿using Discord;
-using Discord.Interactions;
+﻿using Discord.Interactions;
 
 using MediatR;
 
@@ -21,22 +20,19 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
         _logger = logger;
     }
 
-    private async Task SplitLootInternalAsync(string sessionData)
+    [CommandContextType(Discord.InteractionContextType.Guild)]
+    [SlashCommand("splitloot", "Calculates per player profit out of party hunt analyzer session data", runMode: RunMode.Async)]
+    public async Task SplitLootInteractionAsync([Summary("session", "Party hunt session")] string session)
     {
         await DeferAsync();
 
         var request = new SplitLootRequest
         {
             CallerId = Context.User.Id,
-            Clipboard = Regex.Replace(sessionData, @"(\r\n|\r|\n)", " ")
+            Clipboard = Regex.Replace(session, @"(\r\n|\r|\n)", " ")
         };
 
-        var sw = new Stopwatch();
-        sw.Start();
         var response = await _mediator.Send(request);
-        sw.Stop();
-        _logger.LogInformation("Executing 'SplitLootHandler' took {elapsed} milliseconds generating '{response}' response", sw.ElapsedMilliseconds, response);
-
         if (!string.IsNullOrEmpty(response.Error))
         {
             await FollowupAsync(response.Error);
@@ -46,12 +42,4 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
             await FollowupAsync(embed: new SplitLootEmbed().Build(response));
         }
     }
-
-    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm)]
-    [SlashCommand("sl", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
-    public async Task SLInteractionAsync([Summary("clipboard", "Party hunt analyzer")] string clipboard) => await SplitLootInternalAsync(clipboard);
-
-    [CommandContextType(Discord.InteractionContextType.Guild | Discord.InteractionContextType.BotDm)]
-    [SlashCommand("splitloot", "Calculates per player profit out of party hunt analyzer", runMode: RunMode.Async)]
-    public async Task SplitLootInteractionAsync([Summary("clipboard", "Party hunt analyzer")] string clipboard) => await SplitLootInternalAsync(clipboard);
 }
