@@ -9,8 +9,6 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
     private sealed class Player
     {
         public string Name { get; set; } = string.Empty;
-        public long Loot { get; set; }
-        public long Supplies { get; set; }
         public long Balance { get; set; }
         public long DistributedLoot { get; set; }
     }
@@ -52,8 +50,6 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
                 var kv = capture.Value.Trim().Split(" ");
                 switch (kv[0].ToLower())
                 {
-                    case "loot:": player.Loot = ParseNumericValue(kv[1]); break;
-                    case "supplies:": player.Supplies = ParseNumericValue(kv[1]); break;
                     case "balance:": player.Balance = ParseNumericValue(kv[1]); break;
                 };
             }

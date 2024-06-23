@@ -35,7 +35,7 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
         sw.Start();
         var response = await _mediator.Send(request);
         sw.Stop();
-        _logger.LogInformation($"Executing SplitLottHandler {sw.Elapsed}ms generating '{response}' response");
+        _logger.LogInformation($"Executing 'SplitLootHandler' took {sw.ElapsedMilliseconds} milliseconds generating '{response}' response");
 
         if (!string.IsNullOrEmpty(response.Error))
         {
