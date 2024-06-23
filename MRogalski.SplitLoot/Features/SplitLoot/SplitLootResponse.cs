@@ -1,6 +1,8 @@
-﻿namespace MRogalski.SplitLoot.Features.SplitLoot;
+﻿using System.Text;
 
-internal sealed class SplitLootResponse
+namespace MRogalski.SplitLoot.Features.SplitLoot;
+
+internal sealed record class SplitLootResponse
 {
     public IDictionary<string, IEnumerable<SplitLootTranfer>>? Transfers { get; set; }
 
@@ -12,6 +14,26 @@ internal sealed class SplitLootResponse
         {
             Error = $"Error while calculating loot split: {ex.Message}"
         };
+    }
+
+    public override string ToString()
+    {
+        if (!string.IsNullOrEmpty(Error))
+        {
+            return Error;
+        }
+
+        var sb = new StringBuilder();
+        foreach (var key in Transfers.Keys)
+        {
+            sb.AppendLine(key);
+            foreach (var value in Transfers[key])
+            {
+                sb.AppendLine($"transfer {value.Amount} to {value.SendTo}");
+            }
+            sb.AppendLine();
+        }
+        return sb.ToString();
     }
 }
 

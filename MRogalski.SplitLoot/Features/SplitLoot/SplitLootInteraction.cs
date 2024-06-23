@@ -2,15 +2,21 @@
 
 using MediatR;
 
+using Microsoft.Extensions.Logging;
+
+using System.Diagnostics;
+
 namespace MRogalski.SplitLoot.Features.SplitLoot;
 
 public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly IMediator _mediator;
+    private readonly ILogger<SplitLootInteraction> _logger;
 
-    public SplitLootInteraction(IMediator mediator)
+    public SplitLootInteraction(IMediator mediator, ILogger<SplitLootInteraction> logger)
     {
         _mediator = mediator;
+        _logger = logger;
     }
 
     [CommandContextType(Discord.InteractionContextType.Guild)]
@@ -25,7 +31,12 @@ public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteracti
             Clipboard = clipboard
         };
 
+        var sw = new Stopwatch();
+        sw.Start();
         var response = await _mediator.Send(request);
+        sw.Stop();
+        _logger.LogInformation($"Executing SplitLottHandler {sw.Elapsed}ms generating '{response}' response");
+
         if (!string.IsNullOrEmpty(response.Error))
         {
             await FollowupAsync(response.Error);
