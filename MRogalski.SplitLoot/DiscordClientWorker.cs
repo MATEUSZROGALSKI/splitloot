@@ -12,10 +12,8 @@ using MRogalski.SplitLoot.Extensions;
 using MRogalski.SplitLoot.Features.SplitLoot;
 using MRogalski.SplitLoot.Options;
 
-using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Windows.Input;
 
 namespace MRogalski.SplitLoot;
 
@@ -44,6 +42,7 @@ internal class DiscordClientWorker : IHostedService
             props.Username = "SplitLoot");
 
         await _client.SetCustomStatusAsync("Hey! Psst.. wanna calculate your loot?");
+
         await _interactionService.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
         await _interactionService.RegisterCommandsGloballyAsync(true);
     }

@@ -87,6 +87,10 @@ internal sealed class SplitLootHandler : IRequestHandler<SplitLootRequest, Split
             
             var transfers = new List<Transfer>();
             var session = ParseSessionData(request.Clipboard);
+            if (session.Players.Count == 0)
+            {
+                throw new InvalidDataException("Unable to parse session data. Please ensure it's not trimmed or modified!");
+            }
 
             var playersToSend = session.Players.Where(p => p.DistributedLoot < 0).OrderBy(p => p.DistributedLoot).ToList();
             var playersToReceive = session.Players.Where(p => p.DistributedLoot > 0).OrderByDescending(p => p.DistributedLoot).ToList();

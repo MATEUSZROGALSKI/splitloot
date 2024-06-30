@@ -4,7 +4,6 @@ using MediatR;
 
 using Microsoft.Extensions.Logging;
 
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace MRogalski.SplitLoot.Features.SplitLoot;
