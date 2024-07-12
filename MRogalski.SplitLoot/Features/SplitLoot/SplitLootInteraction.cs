@@ -2,26 +2,17 @@
 
 using MediatR;
 
-using Microsoft.Extensions.Logging;
-
 using System.Text.RegularExpressions;
 
 namespace MRogalski.SplitLoot.Features.SplitLoot;
 
-public sealed class SplitLootInteraction : InteractionModuleBase<SocketInteractionContext>
+public sealed class SplitLootInteraction(IMediator mediator) : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly IMediator _mediator;
-    private readonly ILogger<SplitLootInteraction> _logger;
-
-    public SplitLootInteraction(IMediator mediator, ILogger<SplitLootInteraction> logger)
-    {
-        _mediator = mediator;
-        _logger = logger;
-    }
+    private readonly IMediator _mediator = mediator;
 
     [CommandContextType(Discord.InteractionContextType.Guild)]
     [SlashCommand("splitloot", "Calculates per player profit out of party hunt analyzer session data", runMode: RunMode.Async)]
-    public async Task SplitLootInteractionAsync([Summary("session", "Party hunt session")] string session)
+    public async Task HandleAsync([Summary("session", "Party hunt session")] string session)
     {
         await DeferAsync();
 

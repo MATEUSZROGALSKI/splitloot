@@ -1,39 +1,30 @@
 ﻿using Discord;
-using Discord.Commands;
-using Discord.Interactions;
 using Discord.WebSocket;
-
-using MediatR;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using MRogalski.SplitLoot.Extensions;
-using MRogalski.SplitLoot.Features.SplitLoot;
 using MRogalski.SplitLoot.Options;
-
-using System.Reflection;
-using System.Text.RegularExpressions;
+using MRogalski.SplitLoot.Services;
 
 namespace MRogalski.SplitLoot;
 
 internal class DiscordClientWorker : IHostedService
 {
-    private readonly IMediator _mediator;
     private readonly ILogger<DiscordClientWorker> _logger;
     private readonly DiscordOptions _options;
     private readonly DiscordSocketClient _client;
-    private readonly InteractionService _interactionService;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IDiscordInteractionService _interactionService;
+    private readonly IDiscordMessageService _messageService;
 
-    public DiscordClientWorker(IServiceProvider serviceProvider, IMediator mediator, ILogger<DiscordClientWorker> logger, DiscordSocketClient client, InteractionService interactionService)
+    public DiscordClientWorker(ILogger<DiscordClientWorker> logger, DiscordSocketClient client, IDiscordInteractionService interactionService, IDiscordMessageService messageService)
     {
         _logger = logger;
         _options = new DiscordOptions();
         _client = client;
-        _mediator = mediator;
         _interactionService = interactionService;
-        _serviceProvider = serviceProvider;
+        _messageService = messageService;
     }
 
     private async Task InitializeAsync()
@@ -43,46 +34,8 @@ internal class DiscordClientWorker : IHostedService
 
         await _client.SetCustomStatusAsync("Hey! Psst.. wanna calculate your loot?");
 
-        await _interactionService.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
-        await _interactionService.RegisterCommandsGloballyAsync(true);
-    }
-
-    private async Task HandleInteractionAsync(SocketInteraction interaction)
-    {
-        _logger.LogInformation("Interaction received");
-        var ctx = new SocketInteractionContext(_client, interaction);
-        var result = await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
-        if (result.Error.HasValue)
-        {
-            _logger.LogError("Error while executing interaction: {error}",result.Error.Value);
-        }
-    }
-
-    private async Task HandleCommandAsync(SocketMessage messageParam)
-    {
-        var message = messageParam as SocketUserMessage;
-        if (message == null) return;
-
-        int argPos = 0;
-
-        if (!message.HasMentionPrefix(_client.CurrentUser, ref argPos) || message.Author.IsBot)
-            return;
-
-        var request = new SplitLootRequest
-        {
-            CallerId = message.Author.Id,
-            Clipboard = Regex.Replace(message.Content, @"(\r\n|\r|\n)", " ")
-        };
-
-        var response = await _mediator.Send(request);
-        if (!string.IsNullOrEmpty(response.Error))
-        {
-            await message.ReplyAsync(response.Error);
-        }
-        else
-        {
-            await message.ReplyAsync(embed: new SplitLootEmbed().Build(response));
-        }
+        await _interactionService.InitializeAsync();
+        await _messageService.InitializeAsync();
     }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -90,19 +43,16 @@ internal class DiscordClientWorker : IHostedService
     {
         _client.Ready -= InitializeAsync;
         _client.Log -= _logger.LogDiscordEventAsync;
-        _interactionService.Log -= _logger.LogDiscordEventAsync;
-        _client.InteractionCreated -= HandleInteractionAsync;
-        _client.MessageReceived -= HandleCommandAsync;
+
+        await _interactionService.SuspendAsync();
+        await _messageService.SuspendAsync();
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _client.Log += _logger.LogDiscordEventAsync;
-        _interactionService.Log += _logger.LogDiscordEventAsync;
         _client.Ready += InitializeAsync;
-        _client.InteractionCreated += HandleInteractionAsync;
-        _client.MessageReceived += HandleCommandAsync;
 
         await _client.LoginAsync(TokenType.Bot, _options.AuthToken);
         await _client.StartAsync();

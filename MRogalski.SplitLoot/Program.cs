@@ -1,4 +1,5 @@
-﻿using Discord.Interactions;
+﻿using Discord.Commands;
+using Discord.Interactions;
 using Discord.WebSocket;
 
 using Microsoft.Extensions.Configuration;
@@ -7,49 +8,47 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using MRogalski.SplitLoot;
+using MRogalski.SplitLoot.Services;
 
 using System.Reflection;
 
-
 var builder = Host.CreateApplicationBuilder();
 
-var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", false, true)
-            .AddUserSecrets(Assembly.GetExecutingAssembly())
-            .Build();
-
-builder.Configuration.AddConfiguration(configuration);
+builder.Configuration.AddConfiguration(
+    new ConfigurationBuilder()
+        .SetBasePath(Directory.GetCurrentDirectory())
+        .AddJsonFile("appsettings.json", false, true)
+        .AddUserSecrets(Assembly.GetExecutingAssembly())
+        .Build());
 
 builder.Logging.ClearProviders()
-        .AddConsole()
-        .SetMinimumLevel(LogLevel.Trace);
+    .AddConsole()
+    .SetMinimumLevel(LogLevel.Trace);
 
-ConfigureDiscordClient(builder.Services);
-var host = builder.Build();
-host.Run();
-
-void ConfigureDiscordClient(IServiceCollection services)
+var discordSocketClient = new DiscordSocketClient(new DiscordSocketConfig()
 {
-    var config = new DiscordSocketConfig()
-    {
-        UseInteractionSnowflakeDate = false,
-        LogLevel = global::Discord.LogSeverity.Info
-    };
+    UseInteractionSnowflakeDate = false,
+    LogLevel = Discord.LogSeverity.Info
+});
 
-    var discordSocketClient = new DiscordSocketClient(config);
-
-    var interactionService = new InteractionService(discordSocketClient, new()
+builder.Services
+    .AddMediatR(config =>
+        config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()))
+    .AddSingleton(discordSocketClient)
+    .AddSingleton(new InteractionService(discordSocketClient, new()
     {
-        DefaultRunMode = RunMode.Async,
+        DefaultRunMode = Discord.Interactions.RunMode.Async,
         UseCompiledLambda = true,
-        LogLevel = global::Discord.LogSeverity.Info,
-    });
+        LogLevel = Discord.LogSeverity.Info,
+    }))
+    .AddSingleton(new CommandService(new()
+    {
+        DefaultRunMode = Discord.Commands.RunMode.Async,
+        CaseSensitiveCommands = true,
+        LogLevel = Discord.LogSeverity.Info
+    }))
+    .AddSingleton<IDiscordInteractionService, DiscordInteractionService>()
+    .AddSingleton<IDiscordMessageService, DiscordMessageService>()
+    .AddHostedService<DiscordClientWorker>();
 
-    services
-        .AddMediatR(config =>
-            config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()))
-        .AddSingleton(discordSocketClient)
-        .AddSingleton(interactionService)
-        .AddHostedService<DiscordClientWorker>();
-}
+builder.Build().Run();
